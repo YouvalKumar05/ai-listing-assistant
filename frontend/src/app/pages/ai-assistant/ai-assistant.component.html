@@ -1,0 +1,837 @@
+<!-- TOPBAR (Role: Seller, John Doe JD) -->
+<app-topbar [persona]="'seller'" pageTitle="AI Listing Assistant"></app-topbar>
+
+<!-- ═══════════════════════════ LOADING ═══════════════════════════ -->
+@if (loading) {
+  <div class="ai-loader" role="status" aria-live="polite" aria-label="AI Analysis in progress">
+    <div class="ai-loader-card">
+      <div class="loader-icon-wrap pulse">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26Z"
+                fill="url(#lg)" stroke="none"/>
+          <defs>
+            <linearGradient id="lg" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6366f1"/><stop offset="1" stop-color="#3b82f6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <h2 class="loader-title">AI Listing Analysis</h2>
+        <p class="loader-sub">Examining product photos, attributes, and market benchmarks…</p>
+      </div>
+
+      <div class="loader-steps" aria-hidden="true">
+        @for (step of [
+          {n:1, label:'Product images processed', detail:'Resolution, clarity and angle analysis'},
+          {n:2, label:'Product identified',        detail:'Brand, model, condition and attributes detected'},
+          {n:3, label:'Generating listing content',detail:'Optimising title, description and keywords'},
+          {n:4, label:'Price intelligence & quality check', detail:'Benchmarking against market reference data'}
+        ]; track step.n) {
+          <div class="loader-step" [class.ls-done]="loadingStep > step.n" [class.ls-active]="loadingStep === step.n">
+            <div class="ls-icon">
+              @if (loadingStep > step.n) { <span class="ls-check">✓</span> }
+              @else if (loadingStep === step.n) { <span class="ls-spinner"></span> }
+              @else { <span class="ls-num">{{ step.n }}</span> }
+            </div>
+            <div>
+              <div class="ls-label">{{ step.label }}</div>
+              <div class="ls-detail">{{ step.detail }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════════════════════ MAIN PAGE ═══════════════════════════ -->
+@if (!loading && result) {
+<main class="ai-page" id="main-content">
+
+  <!-- PAGE HEADER & NAVIGATION -->
+  <div class="pg-header-container">
+    <div class="back-nav-row">
+      <button type="button" class="btn-back-link" (click)="back()" aria-label="Back to Create Listing">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="15" y1="8" x2="2" y2="8"></line>
+          <polyline points="8 14 2 8 8 2"></polyline>
+        </svg>
+        <span>Back</span>
+      </button>
+    </div>
+
+    <div class="pg-header-row">
+      <div class="pg-title-group">
+        <div class="ai-sparkle-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" fill="#6366f1"/>
+          </svg>
+        </div>
+        <div>
+          <div class="ai-title-row">
+            <h1 class="pg-title">AI Listing Assistant</h1>
+            <span class="ai-done-badge">
+              <span class="green-dot" aria-hidden="true"></span>
+              AI Analysis Complete
+            </span>
+          </div>
+          <p class="pg-subtitle">Review the AI's understanding of your product and improve the listing before publishing.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKFLOW STEPPER -->
+    <div class="stepper-wrap">
+      <app-progress-stepper [steps]="steps"></app-progress-stepper>
+    </div>
+
+    <!-- PRODUCT SUMMARY BAR -->
+    <div class="summary-bar" role="region" aria-label="Product summary">
+      <div class="sb-left">
+        <div class="sb-thumb">
+          <img [src]="gallery[0].url" alt="Sony WH-1000XM5 product thumbnail" />
+        </div>
+        <div>
+          <div class="sb-product-name">{{ result.productUnderstanding.brand }} {{ result.productUnderstanding.model }}</div>
+          <div class="sb-crumbs">Electronics &gt; Audio &gt; Headphones</div>
+          <div class="sb-id">Listing ID: {{ listingId }}</div>
+        </div>
+      </div>
+      <div class="sb-metrics">
+        <div class="sb-metric-cell">
+          <span class="sbm-label">Your Price</span>
+          <span class="sbm-val">₹{{ priceValue | number }}</span>
+        </div>
+        <div class="sb-metric-cell">
+          <span class="sbm-label">Status</span>
+          <span class="sb-status-badge">
+            <span class="green-dot" aria-hidden="true"></span>
+            AI Analysis Complete
+          </span>
+        </div>
+        <div class="sb-metric-cell">
+          <span class="sbm-label">Submitted</span>
+          <span class="sbm-date">Apr 26, 2025 · 10:24 AM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKSPACE: LEFT (72%) AI WORKSPACE + RIGHT (28%) BUYER PREVIEW -->
+  <div class="workspace">
+
+    <!-- ═════════════════════ LEFT WORKSPACE ═════════════════════ -->
+    <div class="main-col">
+
+      <!-- 2-COLUMN ROW 1: AI SUMMARY + PRODUCT ATTRIBUTES -->
+      <div class="cards-grid-2col">
+
+        <!-- AI SUMMARY CARD -->
+        <section class="panel" aria-labelledby="sec-ai-summary">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon purple-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" fill="#6366f1"/>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-ai-summary" class="p-title">AI Summary</h2>
+                <p class="p-sub">What the AI understands about this product.</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <p class="ai-summary-text">
+              Appears to be a black wireless over-ear headphone with noise cancellation and visible charging accessories.
+            </p>
+
+            <div class="conf-section">
+              <div class="conf-row">
+                <span class="conf-lbl">Understanding Confidence</span>
+                <span class="conf-val">{{ result.productUnderstanding.confidenceOverall }}%</span>
+              </div>
+              <div class="prog-track" role="progressbar" [attr.aria-valuenow]="result.productUnderstanding.confidenceOverall" aria-valuemin="0" aria-valuemax="100">
+                <div class="prog-fill" [style.width.%]="result.productUnderstanding.confidenceOverall"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PRODUCT ATTRIBUTES CARD -->
+        <section class="panel" aria-labelledby="sec-attrs">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon blue-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-attrs" class="p-title">Product Attributes</h2>
+                <p class="p-sub">Information identified from the available product evidence.</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body compact-pbody">
+            <table class="attr-tbl" aria-label="Product attributes">
+              <thead>
+                <tr>
+                  <th>Attribute</th>
+                  <th>Value</th>
+                  <th>Confidence</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-attr-name">Brand</td>
+                  <td class="td-attr-val">Sony</td>
+                  <td><span class="badge badge-conf">Confirmed</span></td>
+                  <td class="td-evidence">Photo</td>
+                </tr>
+                <tr>
+                  <td class="td-attr-name">Model</td>
+                  <td class="td-attr-val">WH-1000XM5</td>
+                  <td><span class="badge badge-like">Likely</span></td>
+                  <td class="td-evidence">Photo + Document</td>
+                </tr>
+                <tr>
+                  <td class="td-attr-name">Color</td>
+                  <td class="td-attr-val">Black</td>
+                  <td><span class="badge badge-conf">Confirmed</span></td>
+                  <td class="td-evidence">Photo</td>
+                </tr>
+                <tr>
+                  <td class="td-attr-name">Type</td>
+                  <td class="td-attr-val">Wireless Headphones</td>
+                  <td><span class="badge badge-conf">Confirmed</span></td>
+                  <td class="td-evidence">Photo</td>
+                </tr>
+                <tr>
+                  <td class="td-attr-name">Condition</td>
+                  <td class="td-attr-val">{{ condValue }}</td>
+                  <td><span class="badge badge-rev">Needs Review</span></td>
+                  <td class="td-evidence">Photo + Notes</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div><!-- /cards-grid-2col -->
+
+      <!-- 2-COLUMN ROW 2: AI-GENERATED LISTING CONTENT + CONDITION SUGGESTION -->
+      <div class="cards-grid-2col mt-3">
+
+        <!-- AI-GENERATED LISTING CONTENT CARD -->
+        <section class="panel" aria-labelledby="sec-content">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon purple-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-content" class="p-title">AI-Generated Listing Content</h2>
+                <p class="p-sub">Review and edit the generated content before moving to risk review.</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+
+            <!-- Suggested Title -->
+            <div class="content-field-group">
+              <div class="cfg-header">
+                <div class="cfg-label-row">
+                  <label class="form-sublabel" for="inp-title">AI Suggested Title</label>
+                  @if (titleEdited) {
+                    <span class="badge-se">Seller Edited</span>
+                  }
+                </div>
+              </div>
+
+              @if (editingTitle) {
+                <input id="inp-title" type="text" [(ngModel)]="titleValue" class="form-ctrl title-input" />
+                <div class="edit-actions-row">
+                  <button type="button" class="btn btn-pri btn-sm" (click)="saveTitle()">Save Title</button>
+                  <button type="button" class="btn btn-gst btn-sm" (click)="cancelTitle()">Cancel</button>
+                </div>
+              } @else {
+                <div class="text-display-box" id="inp-title">{{ titleValue }}</div>
+                <div class="action-buttons-row">
+                  <button type="button" class="btn btn-sec btn-sm" (click)="startEditTitle()">Edit</button>
+                  <button type="button" class="btn btn-pri-purple btn-sm" (click)="openRegen('title')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1">
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Regenerate
+                  </button>
+                </div>
+              }
+
+              <!-- View Alternatives Accordion -->
+              <div class="alternatives-wrapper">
+                <button type="button" class="btn-toggle-row" (click)="toggle('alternatives')" [attr.aria-expanded]="open['alternatives']">
+                  <span>View Alternatives (3)</span>
+                  <span class="arrow-ico" [class.open]="open['alternatives']">›</span>
+                </button>
+                @if (open['alternatives']) {
+                  <div class="alternatives-list">
+                    @for (alt of result.content.title.alternates; track alt; let i = $index) {
+                      <div class="alt-item">
+                        <span class="alt-text">{{ alt }}</span>
+                        <button type="button" class="btn-apply-alt" (click)="applyAlt(alt)">Apply</button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Suggested Description -->
+            <div class="content-field-group mt-3">
+              <div class="cfg-header">
+                <div class="cfg-label-row">
+                  <span class="form-sublabel">AI Suggested Description</span>
+                  @if (descEdited) {
+                    <span class="badge-se">Seller Edited</span>
+                  }
+                </div>
+              </div>
+
+              @if (editingDesc) {
+                <textarea id="inp-desc" [(ngModel)]="descValue" rows="4" class="form-ctrl desc-textarea"></textarea>
+                <div class="edit-actions-row">
+                  <button type="button" class="btn btn-pri btn-sm" (click)="saveDesc()">Save Description</button>
+                  <button type="button" class="btn btn-gst btn-sm" (click)="cancelDesc()">Cancel</button>
+                </div>
+              } @else {
+                <div class="desc-box">
+                  <p class="desc-content">{{ descValue }}</p>
+                </div>
+                <div class="action-buttons-row">
+                  <button type="button" class="btn btn-sec btn-sm" (click)="startEditDesc()">Edit</button>
+                  <button type="button" class="btn btn-pri-purple btn-sm" (click)="openRegen('description')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1">
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Regenerate
+                  </button>
+                </div>
+              }
+
+              <!-- Why this was generated -->
+              <div class="alternatives-wrapper">
+                <button type="button" class="btn-toggle-row" (click)="toggle('whyDesc')" [attr.aria-expanded]="open['whyDesc']">
+                  <span>Why this was generated</span>
+                  <span class="arrow-ico" [class.open]="open['whyDesc']">›</span>
+                </button>
+                @if (open['whyDesc']) {
+                  <div class="why-generated-box">
+                    Generated using product images, seller notes, detected attributes and available supporting documents. Strictly constrained to verified factual observations.
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- CONDITION SUGGESTION CARD -->
+        <section class="panel" aria-labelledby="sec-condition">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon blue-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-condition" class="p-title">Condition Suggestion</h2>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="cond-block">
+              <span class="cond-sublabel">Suggested condition</span>
+              <div class="cond-pill-row">
+                <span class="badge badge-conf-pill">Good</span>
+                <div class="cond-conf-track-group">
+                  <div class="cctg-top">
+                    <span class="cctg-label">Confidence</span>
+                    <span class="cctg-val">84%</span>
+                  </div>
+                  <div class="cctg-track">
+                    <div class="cctg-fill" style="width: 84%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="cond-clarification-note">
+                Minor visible wear is present. Some condition details may need clarification.
+              </p>
+
+              <div class="cond-edit-cta">
+                <button type="button" class="btn btn-outline-purple btn-sm" (click)="toggle('condEdit')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Edit Condition
+                </button>
+              </div>
+
+              @if (open['condEdit']) {
+                <div class="cond-selector-box mt-2">
+                  <label class="form-label" for="cond-select">Select New Condition:</label>
+                  <div class="flex gap-2">
+                    <select id="cond-select" class="form-sel" [value]="condValue" (change)="saveCondition($any($event.target).value)">
+                      @for (opt of condOptions; track opt) {
+                        <option [value]="opt">{{ opt }}</option>
+                      }
+                    </select>
+                    <button type="button" class="btn btn-gst btn-sm" (click)="open['condEdit'] = false">Close</button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /cards-grid-2col -->
+
+      <!-- 2-COLUMN ROW 3: PRICE INTELLIGENCE + MISSING INFORMATION -->
+      <div class="cards-grid-2col mt-3">
+
+        <!-- PRICE INTELLIGENCE CARD -->
+        <section class="panel" aria-labelledby="sec-price">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon blue-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-price" class="p-title">Price Intelligence</h2>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="price-three-stats">
+              <div class="pts-cell">
+                <span class="pts-label">Your Price</span>
+                <span class="pts-val">₹{{ priceValue | number }}</span>
+              </div>
+              <div class="pts-cell">
+                <span class="pts-label">Comparable Range</span>
+                <span class="pts-val pts-range">₹18,000 – ₹24,000</span>
+              </div>
+              <div class="pts-cell">
+                <span class="pts-label">Market Position</span>
+                <span class="badge badge-amber-pill">Below typical range</span>
+              </div>
+            </div>
+
+            <!-- Visual range bar -->
+            <div class="price-vis-container">
+              <div class="price-bubble-marker" [style.left.%]="pricePosPct(priceValue)">
+                <span class="pbm-tag">Below typical range</span>
+              </div>
+              <div class="pvc-track">
+                <div class="pvc-fill-median"></div>
+              </div>
+            </div>
+
+            <div class="pts-footer">
+              <button type="button" class="btn-text-blue" (click)="startEditPrice()">View Details</button>
+            </div>
+
+            @if (editingPrice) {
+              <div class="price-inline-editor mt-2">
+                <label class="form-label" for="price-edit-input">Update Desired Price (₹):</label>
+                <div class="flex gap-2">
+                  <input id="price-edit-input" type="number" [(ngModel)]="priceValue" class="form-ctrl curr-in" min="100" />
+                  <button type="button" class="btn btn-pri btn-sm" (click)="savePrice()">Save</button>
+                  <button type="button" class="btn btn-gst btn-sm" (click)="cancelPrice()">Cancel</button>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- MISSING INFORMATION CARD -->
+        <section class="panel" aria-labelledby="sec-missing">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon amber-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-missing" class="p-title">Missing Information</h2>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="missing-items-list">
+              <div class="mi-item-row">
+                <span class="mi-alert-icon">⚠</span>
+                <div class="mi-item-body">
+                  <strong class="mi-field-name">Condition details</strong>
+                  <p class="mi-field-desc">Add more details about visible wear.</p>
+                </div>
+              </div>
+
+              <div class="mi-item-row">
+                <span class="mi-alert-icon">⚠</span>
+                <div class="mi-item-body">
+                  <strong class="mi-field-name">Model/serial label</strong>
+                  <p class="mi-field-desc">Add a clearer photo of the label.</p>
+                </div>
+              </div>
+
+              <div class="mi-item-row">
+                <span class="mi-alert-icon">⚠</span>
+                <div class="mi-item-body">
+                  <strong class="mi-field-name">Accessories</strong>
+                  <p class="mi-field-desc">Confirm what is included.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mi-card-actions">
+              <button type="button" class="btn btn-pri-purple btn-sm" (click)="result.missingInformation?.[0] && resolveItem(result.missingInformation![0])">Add Info</button>
+              <button type="button" class="btn btn-sec btn-sm" (click)="result.missingInformation?.[0] && dismissItem(result.missingInformation![0])">Dismiss</button>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /cards-grid-2col -->
+
+      <!-- 2-COLUMN ROW 4: PHOTO INTELLIGENCE + SEARCH & DISCOVERY -->
+      <div class="cards-grid-2col mt-3">
+
+        <!-- PHOTO INTELLIGENCE CARD -->
+        <section class="panel" aria-labelledby="sec-photos">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon blue-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-photos" class="p-title">Photo Intelligence</h2>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="photo-four-stats">
+              <div class="p4-col">
+                <span class="p4-label">Photo Quality</span>
+                <span class="badge badge-conf-pill">Good</span>
+              </div>
+              <div class="p4-col">
+                <span class="p4-label">Product Visibility</span>
+                <span class="badge badge-conf-pill">Good</span>
+              </div>
+              <div class="p4-col">
+                <span class="p4-label">Coverage</span>
+                <span class="badge badge-amber-pill">Partial</span>
+              </div>
+              <div class="p4-col">
+                <span class="p4-label">Label Visibility</span>
+                <span class="badge badge-amber-pill">Partial</span>
+              </div>
+            </div>
+
+            <div class="pts-footer mt-2">
+              <button type="button" class="btn-text-blue" (click)="toggle('photos')">
+                {{ open['photos'] ? 'Hide Details' : 'View Details' }}
+              </button>
+            </div>
+
+            @if (open['photos']) {
+              <div class="photo-expand-content mt-2">
+                <p class="rec-subhead"><strong>Recommended additional photos:</strong></p>
+                <ul class="rec-dots-list">
+                  <li>Back of product</li>
+                  <li>Model/serial label (clear closeup)</li>
+                  <li>Accessories & retail box packaging</li>
+                </ul>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- SEARCH & DISCOVERY CARD -->
+        <section class="panel" aria-labelledby="sec-search">
+          <div class="panel-hdr-static">
+            <div class="phdr-left">
+              <span class="p-icon blue-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <div>
+                <h2 id="sec-search" class="p-title">Search & Discovery</h2>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="tags-group">
+              <span class="tags-group-title">Suggested Keywords</span>
+              <div class="chips-flex-row">
+                @for (kw of ['Sony', 'WH-1000XM5', 'Wireless Headphones', 'Noise Cancelling', 'Bluetooth', 'Over-ear']; track kw) {
+                  <span class="chip-bubble">{{ kw }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="tags-group mt-3">
+              <span class="tags-group-title">Suggested Tags</span>
+              <div class="chips-flex-row">
+                @for (tag of ['#Sony', '#Headphones', '#Wireless', '#NoiseCancelling']; track tag) {
+                  <span class="chip-bubble">{{ tag }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /cards-grid-2col -->
+
+    </div><!-- /main-col -->
+
+    <!-- ═════════════════════ RIGHT BUYER PREVIEW ═════════════════════ -->
+    <aside class="preview-col" aria-label="Buyer Preview">
+      <div class="preview-sticky-wrapper">
+
+        <!-- PREVIEW HEADER -->
+        <div class="preview-panel-header">
+          <div class="pph-left">
+            <span class="preview-icon-eye" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
+            <div>
+              <h2 class="preview-main-title">AI Listing Preview</h2>
+              <p class="preview-subtitle">How your listing may appear to buyers.</p>
+            </div>
+          </div>
+          <span class="badge-buyer-view">Buyer View</span>
+        </div>
+
+        <!-- MINIATURE E-COMMERCE PRODUCT DETAIL PAGE -->
+        <div class="storefront-card">
+
+          <!-- 1. Product Image Gallery -->
+          <div class="sf-gallery">
+            <div class="sf-main-image-box">
+              <img [src]="gallery[galleryIdx].url" [alt]="gallery[galleryIdx].label" class="sf-main-img" />
+              <button type="button" class="gal-nav-arrow gal-nav-left" (click)="prevImg()" aria-label="Previous image">‹</button>
+              <button type="button" class="gal-nav-arrow gal-nav-right" (click)="nextImg()" aria-label="Next image">›</button>
+            </div>
+
+            <div class="sf-thumbnails-row" role="tablist">
+              @for (img of gallery; track img.url; let i = $index) {
+                <button type="button" class="sf-thumb-item" [class.thumb-active]="galleryIdx === i"
+                        (click)="setImg(i)" [attr.aria-label]="img.label" role="tab" [attr.aria-selected]="galleryIdx === i">
+                  <img [src]="img.url" [alt]="img.label" />
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- 2. Product Information -->
+          <div class="sf-info-body">
+            <!-- Title derived directly from AI title -->
+            <h3 class="sf-product-title">{{ titleValue }}</h3>
+
+            <!-- Price derived from seller price -->
+            <div class="sf-price-row">
+              <span class="sf-price">₹{{ priceValue | number }}</span>
+            </div>
+
+            <!-- Condition -->
+            <div class="sf-condition-row">
+              <span class="badge badge-conf-pill">✓ {{ condValue }}</span>
+            </div>
+
+            <!-- Key Highlights (derived from verified product specs) -->
+            <div class="sf-highlights-pills">
+              <span class="sf-pill"><span class="check-ico">✓</span> Wireless</span>
+              <span class="sf-pill"><span class="check-ico">✓</span> Noise Cancelling</span>
+              <span class="sf-pill"><span class="check-ico">✓</span> Over-ear</span>
+              <span class="sf-pill"><span class="check-ico">✓</span> Bluetooth</span>
+            </div>
+
+            <!-- Key Details -->
+            <div class="sf-key-details">
+              <h4 class="sf-section-heading">Key Details</h4>
+              <div class="sf-details-table">
+                <div class="sf-detail-row">
+                  <span class="sfd-label">Brand</span>
+                  <span class="sfd-val">{{ result.productUnderstanding.brand }}</span>
+                </div>
+                <div class="sf-detail-row">
+                  <span class="sfd-label">Model</span>
+                  <span class="sfd-val">{{ result.productUnderstanding.model }}</span>
+                </div>
+                <div class="sf-detail-row">
+                  <span class="sfd-label">Color</span>
+                  <span class="sfd-val">{{ result.productUnderstanding.color }}</span>
+                </div>
+                <div class="sf-detail-row">
+                  <span class="sfd-label">Product Type</span>
+                  <span class="sfd-val">{{ result.productUnderstanding.productType }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- About this listing (Description) -->
+            <div class="sf-about-listing">
+              <h4 class="sf-section-heading">About this listing</h4>
+              <p class="sf-desc-text">{{ descValue }}</p>
+            </div>
+
+            <!-- Seller / Shipping expandable row -->
+            <div class="sf-expand-row">
+              <div class="sfer-left">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1">
+                  <rect x="1" y="3" width="15" height="13"></rect>
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                  <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                  <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+                <span>Seller shipping details</span>
+              </div>
+              <span class="sfer-arrow">›</span>
+            </div>
+
+            <!-- CTAs: Buy Now + Add to Cart (Preview Only) -->
+            <div class="sf-actions-group">
+              <button type="button" class="btn btn-ecommerce-buy" disabled aria-disabled="true">
+                <span>Buy Now</span>
+                <span class="btn-subtext">Preview only</span>
+              </button>
+              <button type="button" class="btn btn-ecommerce-cart" disabled aria-disabled="true">
+                Add to Cart
+              </button>
+            </div>
+
+            <!-- Preview disclaimer -->
+            <div class="sf-preview-disclaimer">
+              <span class="lock-ico">🔒</span>
+              <span>Preview only • Not published</span>
+            </div>
+
+          </div><!-- /sf-info-body -->
+        </div><!-- /storefront-card -->
+
+      </div>
+    </aside>
+
+  </div><!-- /workspace -->
+
+  <!-- STICKY BOTTOM ACTION BAR -->
+  <footer class="action-bar" role="toolbar" aria-label="Page actions">
+    <div class="ab-inner">
+      <div class="ab-left">
+        <button type="button" class="btn btn-sec btn-lg" id="btn-back" (click)="back()">
+          ← Back to Listing
+        </button>
+        <button type="button" class="btn btn-sec btn-lg" id="btn-regen-all" (click)="openRegen('all')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Regenerate
+        </button>
+      </div>
+      <div class="ab-right">
+        @if (anyEdits) {
+          <span class="edits-saved-indicator">
+            <span class="txt-green">✓</span> Changes Saved
+          </span>
+        }
+        <button type="button" class="btn btn-sec btn-lg" (click)="saveAllChanges()">
+          Save Changes
+        </button>
+        <button type="button" class="btn btn-pri-purple btn-lg" id="btn-approve" (click)="approve()" [disabled]="navigatingToRisk">
+          {{ navigatingToRisk ? 'Preparing…' : 'Approve Listing Content →' }}
+        </button>
+      </div>
+    </div>
+  </footer>
+
+</main>
+}
+
+<!-- REGENERATE MODAL -->
+@if (showRegenModal) {
+  <div class="modal-overlay" (click)="closeRegen()" role="dialog" aria-modal="true" aria-labelledby="regen-title">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-hdr">
+        <h3 id="regen-title" class="modal-title">Regenerate Listing Content</h3>
+        <button type="button" class="btn-close-modal" (click)="closeRegen()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group mb-3">
+          <label class="form-label">What to Regenerate:</label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="regenT" [(ngModel)]="regenTarget" value="all"/> Both Title &amp; Description</label>
+            <label class="radio-opt"><input type="radio" name="regenT" [(ngModel)]="regenTarget" value="title"/> Title Only</label>
+            <label class="radio-opt"><input type="radio" name="regenT" [(ngModel)]="regenTarget" value="description"/> Description Only</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tone &amp; Style:</label>
+          <div class="tone-grid">
+            <button type="button" class="tone-card" [class.tone-active]="regenTone==='professional'" (click)="regenTone='professional'">
+              <strong>Professional</strong>
+              <span>Balanced, authoritative marketplace tone</span>
+            </button>
+            <button type="button" class="tone-card" [class.tone-active]="regenTone==='concise'" (click)="regenTone='concise'">
+              <strong>Concise</strong>
+              <span>Brief and to the point</span>
+            </button>
+            <button type="button" class="tone-card" [class.tone-active]="regenTone==='detailed'" (click)="regenTone='detailed'">
+              <strong>Detailed</strong>
+              <span>Full specifications and accessories</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-ftr">
+        <button type="button" class="btn btn-gst" (click)="closeRegen()">Cancel</button>
+        <button type="button" class="btn btn-pri-purple" (click)="execRegen()" [disabled]="regenerating">
+          {{ regenerating ? 'Regenerating…' : 'Regenerate Content' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

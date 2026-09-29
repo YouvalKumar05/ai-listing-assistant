@@ -1,0 +1,456 @@
+<app-topbar
+  pageTitle="Fraud Detection & Risk Review"
+  [breadcrumbs]="[
+    { label: 'Dashboard', route: '/' },
+    { label: 'AI Assistant', route: '/ai-assistant/' + listingId },
+    { label: 'Fraud Detection' }
+  ]"
+></app-topbar>
+
+<!-- Loading Skeleton -->
+@if (loading) {
+  <div class="page-body">
+    <div class="loading-state card">
+      <div class="spinner"></div>
+      <div class="loading-title">✦ Running Automated Risk Screening…</div>
+      <div class="loading-desc">
+        Analyzing 6 risk signal groups across image integrity, product consistency, authenticity evidence, policy compliance, repost patterns, and price anomalies.
+      </div>
+      <div class="loading-bar-wrapper">
+        <div class="loading-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Main Screened Content -->
+@if (!loading && fraudResult) {
+  <!-- Workflow Header -->
+  <div class="page-header fraud-header">
+    <div class="header-top">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="workflow-badge">Automated Screening Stage</span>
+          <app-status-badge label="Screening Complete" type="warning" [dot]="true"></app-status-badge>
+        </div>
+        <h1 class="header-title">Fraud Detection & Risk Review</h1>
+        <p class="header-subtitle">
+          Independent risk evaluation engine evaluating listing #{{ listingId }} across 6 risk signal dimensions.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button
+          class="btn btn-primary btn-lg"
+          id="continue-admin-btn"
+          (click)="navigateToAdminReview()"
+        >
+          Continue to Admin Review →
+        </button>
+      </div>
+    </div>
+
+    <!-- Stepper -->
+    <div class="stepper-row">
+      <app-progress-stepper [steps]="steps"></app-progress-stepper>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- MANDATORY NOTICE BANNER: Automated screening — final decision requires human review -->
+    <div class="notice-banner" role="alert">
+      <div class="notice-icon">⚠</div>
+      <div class="notice-content">
+        <div class="notice-heading">
+          Automated screening — final decision requires human review
+        </div>
+        <div class="notice-body">
+          This prototype fraud screening score (0–100) and signal flags are AI-generated assistive indicators intended for human reviewer triage.
+          No definitive determination (such as fraudulent or counterfeit) is made automatically. Score formula and signal weights are prototype demo representations and do not claim or replicate any production system.
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Key Metrics Row -->
+    <div class="metrics-grid">
+      <!-- Prototype Fraud Risk Score Card -->
+      <div class="card metric-card score-hero-card">
+        <div class="metric-card-header">
+          <span class="card-tag">Prototype Indicator</span>
+          <span class="score-formula-tag">0–100 Scale</span>
+        </div>
+        <div class="score-display-wrapper">
+          <div class="score-dial" [style.border-color]="scoreColor(fraudResult.fraudRiskScore)">
+            <div class="dial-val" [style.color]="scoreColor(fraudResult.fraudRiskScore)">
+              {{ fraudResult.fraudRiskScore }}
+            </div>
+            <div class="dial-scale">/100</div>
+          </div>
+          <div class="score-details">
+            <div class="score-band-label">
+              Risk Assessment Band:
+              <app-status-badge
+                [label]="'Review Required (Score ' + fraudResult.fraudRiskScore + ')'"
+                type="warning"
+                [dot]="true"
+              ></app-status-badge>
+            </div>
+            <p class="text-sm text-secondary mt-1">
+              Score falls within the 40–69 range: indicates moderate inconsistency or incomplete verification markers warranting manual review.
+            </p>
+            <div class="band-meter mt-3">
+              <div class="band-segment band-low" title="Low Risk (0-39)"><span>0–39 Low</span></div>
+              <div class="band-segment band-review active-band" title="Review Required (40-69)">
+                <span>40–69 Review</span>
+                <span class="pin-marker" style="left: 67%;">▼ 67</span>
+              </div>
+              <div class="band-segment band-high" title="High Concern (70-100)"><span>70–100 High</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Authenticity Evidence Card -->
+      <div class="card metric-card">
+        <div class="metric-card-header">
+          <span class="card-tag">Authenticity Analysis</span>
+          <app-status-badge
+            [label]="authenticityLabel(fraudResult.authenticityStatus)"
+            [type]="authenticityBadgeType(fraudResult.authenticityStatus)"
+          ></app-status-badge>
+        </div>
+        <div class="card-metric-body">
+          <div class="font-semibold text-primary mb-1">Authenticity Findings Summary</div>
+          <p class="text-sm text-secondary">
+            {{ fraudResult.authenticityNote }}
+          </p>
+          <div class="policy-tags mt-3">
+            @for (flag of fraudResult.policyFlags; track flag) {
+              <span class="policy-flag-chip">
+                <span class="chip-icon">⚑</span> {{ flag }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommended Action Card -->
+      <div class="card metric-card action-recommendation-card">
+        <div class="metric-card-header">
+          <span class="card-tag">Recommended Next Step</span>
+          <app-status-badge label="Suggested Action" type="purple"></app-status-badge>
+        </div>
+        <div class="action-rec-body">
+          <div class="recommended-action-title">
+            ✦ {{ fraudResult.recommendedActionLabel }}
+          </div>
+          <p class="text-sm text-secondary">
+            Based on product consistency and serial number visibility findings, additional seller clarification is recommended prior to listing activation.
+          </p>
+          <div class="rec-button-group mt-3">
+            <button
+              type="button"
+              class="btn btn-sm btn-warning"
+              id="rec-request-info-btn"
+              (click)="onRequestMoreInfo()"
+            >
+              Request More Information
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-secondary"
+              id="rec-hold-review-btn"
+              (click)="onHoldForReview()"
+            >
+              Hold for Review
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              id="rec-escalate-btn"
+              (click)="onEscalateAuth()"
+            >
+              Escalate Authentication
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evidence Investigation Panels Section -->
+    <div class="section-title-bar mt-6 mb-3">
+      <div>
+        <h2 class="section-heading">Evidence Inspection Panel</h2>
+        <p class="section-subtext">
+          Direct linkage showing which image, text, or metadata source triggered each flagged signal. Click an item to inspect.
+        </p>
+      </div>
+      <div class="evidence-filter-tabs">
+        <button
+          type="button"
+          class="filter-tab-btn"
+          [class.active]="evidenceFilter === 'all'"
+          (click)="evidenceFilter = 'all'"
+        >All Evidence ({{ fraudResult.evidenceItems.length }})</button>
+        <button
+          type="button"
+          class="filter-tab-btn"
+          [class.active]="evidenceFilter === 'image'"
+          (click)="evidenceFilter = 'image'"
+        >Image (2)</button>
+        <button
+          type="button"
+          class="filter-tab-btn"
+          [class.active]="evidenceFilter === 'text'"
+          (click)="evidenceFilter = 'text'"
+        >Text (1)</button>
+        <button
+          type="button"
+          class="filter-tab-btn"
+          [class.active]="evidenceFilter === 'metadata'"
+          (click)="evidenceFilter = 'metadata'"
+        >Metadata (1)</button>
+        <button
+          type="button"
+          class="filter-tab-btn"
+          [class.active]="evidenceFilter === 'price'"
+          (click)="evidenceFilter = 'price'"
+        >Price (1)</button>
+      </div>
+    </div>
+
+    <div class="evidence-workbench card mb-6">
+      <!-- Left side: Image Viewer & Hotspot Inspector -->
+      <div class="evidence-viewer-pane">
+        <div class="pane-header">
+          <span class="font-semibold text-sm">Submitted Images Inspection</span>
+          <span class="text-xs text-muted">Image {{ selectedImageIndex + 1 }} of {{ listingDraft?.input?.images?.length || 4 }}</span>
+        </div>
+
+        @if (listingDraft?.input?.images && listingDraft!.input.images.length > 0) {
+          <div class="main-image-display">
+            <img
+              [src]="listingDraft!.input.images[selectedImageIndex]?.previewUrl"
+              [alt]="listingDraft!.input.images[selectedImageIndex]?.name"
+              class="focused-image"
+            />
+            <!-- Overlay Flag Tag -->
+            @if (selectedImageIndex === 0) {
+              <div class="image-flag-overlay overlay-success">
+                <span class="dot">●</span> OEM Canon Logo & Body Confirmed
+              </div>
+            } @else if (selectedImageIndex === 1) {
+              <div class="image-flag-overlay overlay-danger">
+                <span class="dot">●</span> Lens Barrel Marking Conflict: Check 18-55mm vs 18-135mm
+              </div>
+            } @else if (selectedImageIndex === 2) {
+              <div class="image-flag-overlay overlay-warning">
+                <span class="dot">●</span> Base Plate Serial Sticker Angled Out of Frame
+              </div>
+            } @else if (selectedImageIndex === 3) {
+              <div class="image-flag-overlay overlay-info">
+                <span class="dot">●</span> Compliance Engraving Partially Obscured
+              </div>
+            }
+          </div>
+
+          <!-- Thumbnails Selector -->
+          <div class="evidence-thumbs-row mt-3">
+            @for (img of listingDraft!.input.images; track img.id; let idx = $index) {
+              <button
+                type="button"
+                class="evidence-thumb"
+                [class.active]="selectedImageIndex === idx"
+                (click)="selectImage(idx)"
+                [attr.aria-label]="'Inspect photo ' + (idx + 1)"
+              >
+                <img [src]="img.previewUrl" [alt]="img.name" />
+                <span class="thumb-index">#{{ idx + 1 }}</span>
+                @if (idx === 1) {
+                  <span class="thumb-warn-dot" title="Flagged image">!</span>
+                }
+                @if (idx === 2) {
+                  <span class="thumb-warn-dot" title="Flagged image">!</span>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Right side: Evidence List linked to signals -->
+      <div class="evidence-list-pane">
+        <div class="pane-header">
+          <span class="font-semibold text-sm">Detected Signal Evidence Details</span>
+          <span class="text-xs text-muted">Click to highlight source</span>
+        </div>
+
+        <div class="evidence-cards-container">
+          @for (item of filteredEvidenceItems; track item.id) {
+            <div
+              class="evidence-item-card"
+              [class.active]="selectedEvidenceId === item.id"
+              (click)="selectEvidence(item)"
+              role="button"
+              tabindex="0"
+            >
+              <div class="evidence-header-row">
+                <div class="flex items-center gap-2">
+                  <span class="evidence-source-badge source-{{ item.sourceType }}">
+                    {{ item.sourceType | uppercase }}
+                  </span>
+                  @if (item.imageIndex !== undefined) {
+                    <span class="evidence-img-ref">Image #{{ item.imageIndex + 1 }}</span>
+                  }
+                  <span class="font-semibold text-sm text-primary">{{ item.detectedSignal }}</span>
+                </div>
+                <span class="text-xs text-muted">{{ item.confidence }}% confidence</span>
+              </div>
+              <p class="evidence-reason-text mt-1">
+                {{ item.reason }}
+              </p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- SIX SIGNAL GROUPS SECTION -->
+    <div class="section-title-bar mt-6 mb-3">
+      <div>
+        <h2 class="section-heading">Six Core Risk Signal Groups</h2>
+        <p class="section-subtext">
+          Comprehensive breakdown across all 6 risk dimensions. Every signal displays its score contribution, severity, analytical finding, evidence source, and confidence rating.
+        </p>
+      </div>
+    </div>
+
+    <div class="signal-groups-grid">
+      @for (group of fraudResult.signalGroups; track group.id; let gIdx = $index) {
+        <div class="card signal-group-card" [class.group-high-severity]="group.severity === 'high'">
+          <!-- Group Header -->
+          <div class="signal-group-header">
+            <div class="group-title-col">
+              <div class="group-index-label">Signal Group {{ gIdx + 1 }} of 6</div>
+              <h3 class="group-name">{{ group.label }}</h3>
+            </div>
+            <div class="group-score-badge-col">
+              <app-status-badge
+                [label]="severityReviewLabel(group.severity)"
+                [type]="severityBadgeType(group.severity)"
+              ></app-status-badge>
+              <div class="group-score-text mt-1">
+                Risk Contribution: <strong>{{ group.score }}</strong> / {{ group.maxScore }} pts
+              </div>
+            </div>
+          </div>
+
+          <!-- Group Progress Meter -->
+          <div class="group-meter-bar mt-2 mb-3">
+            <div
+              class="group-meter-fill"
+              [style.width.%]="(group.score / group.maxScore) * 100"
+              [style.background]="group.severity === 'high' ? 'var(--red-500)' : group.severity === 'medium' ? 'var(--amber-500)' : 'var(--green-500)'"
+            ></div>
+          </div>
+
+          <!-- Group Summary -->
+          <p class="group-summary-text text-sm text-secondary mb-4">
+            {{ group.summary }}
+          </p>
+
+          <!-- Individual Signals within this Group -->
+          <div class="signals-list">
+            @for (sig of group.signals; track sig.id) {
+              <div class="signal-card">
+                <!-- Signal Top Bar -->
+                <div class="signal-card-top">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="signal-title font-semibold text-sm">{{ sig.label }}</span>
+                    <app-status-badge
+                      [label]="severityReviewLabel(sig.severity)"
+                      [type]="severityBadgeType(sig.severity)"
+                    ></app-status-badge>
+                  </div>
+                  <div class="signal-score-tag">
+                    Score: <strong>{{ sig.score }}</strong>/{{ sig.maxScore }} pts
+                  </div>
+                </div>
+
+                <!-- Signal Finding -->
+                <div class="signal-finding-row mt-2">
+                  <span class="finding-label">Finding:</span>
+                  <span class="finding-text">{{ sig.finding }}</span>
+                </div>
+
+                <!-- Signal Evidence Citation -->
+                <div class="signal-evidence-row mt-2">
+                  <span class="evidence-icon">🔍</span>
+                  <span class="evidence-label">Evidence:</span>
+                  <span class="evidence-content">{{ sig.evidence }}</span>
+                </div>
+
+                <!-- Signal Confidence Bar -->
+                <div class="signal-footer-row mt-2">
+                  <div class="confidence-indicator">
+                    <span class="confidence-label">Confidence:</span>
+                    <div class="confidence-bar-bg">
+                      <div class="confidence-bar-fill" [style.width.%]="sig.confidence"></div>
+                    </div>
+                    <span class="confidence-val">{{ sig.confidence }}%</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Bottom Actions Toolbar -->
+    <div class="card bottom-workflow-bar mt-6">
+      <div class="workflow-summary-text">
+        <div class="font-semibold text-primary">Ready to take administrative action?</div>
+        <div class="text-sm text-secondary">
+          Forward these automated screening signals and evidence citations to the Admin Review & Action console.
+        </div>
+      </div>
+      <div class="workflow-actions-cluster">
+        <button
+          type="button"
+          class="btn btn-warning"
+          id="bar-request-info-btn"
+          (click)="onRequestMoreInfo()"
+        >
+          Request More Information
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="bar-hold-review-btn"
+          (click)="onHoldForReview()"
+        >
+          Hold for Review
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="bar-escalate-btn"
+          (click)="onEscalateAuth()"
+        >
+          Escalate Authentication
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-lg"
+          id="bar-continue-admin-btn"
+          (click)="navigateToAdminReview()"
+        >
+          Continue to Admin Review →
+        </button>
+      </div>
+    </div>
+
+  </div>
+}
