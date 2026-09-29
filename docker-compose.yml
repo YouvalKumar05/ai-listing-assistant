@@ -1,0 +1,94 @@
+services:
+  # ─────────────────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_listing_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: listinguser
+      POSTGRES_PASSWORD: listingpass
+      POSTGRES_DB: ai_listing_assistant
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listinguser -d ai_listing_assistant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────
+  # Python AI Service (FastAPI + Groq)
+  # ─────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: ai_listing_ai_service
+    restart: unless-stopped
+    env_file:
+      - ./ai-service/.env
+    environment:
+      AI_SERVICE_PORT: "8000"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────
+  # Go Backend API
+  # ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai_listing_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://listinguser:listingpass@postgres:5432/ai_listing_assistant?sslmode=disable
+      API_PORT: "8080"
+      UPLOAD_DIR: ./storage
+      MAX_IMAGE_SIZE_MB: "10"
+      MAX_IMAGES: "5"
+      MAX_SELLER_NOTES_LENGTH: "500"
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────
+  # Angular Frontend (served by Nginx)
+  # ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai_listing_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "4200:80"
+
+volumes:
+  postgres_data:
+  backend_storage:
